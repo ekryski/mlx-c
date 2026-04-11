@@ -795,6 +795,44 @@ extern "C" int mlx_fast_turbo_flash_pass1_causal(
   return 0;
 }
 
+extern "C" int mlx_fast_turbo_flash_pass1_nr0(
+    mlx_vector_array* res,
+    const mlx_array q_rot,
+    const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook,
+    const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook,
+    int token_count, int repeat_count, int num_blocks, int block_size,
+    int key_bits, int value_bits, int dim, int nr0, const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::turbo_flash_pass1_nr0(
+        mlx_array_get_(q_rot),
+        mlx_array_get_(key_packed), mlx_array_get_(key_norms), mlx_array_get_(key_codebook),
+        mlx_array_get_(val_packed), mlx_array_get_(val_norms), mlx_array_get_(val_codebook),
+        token_count, repeat_count, num_blocks, block_size,
+        key_bits, value_bits, dim, nr0, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_flash_pass1_nr0_causal(
+    mlx_vector_array* res,
+    const mlx_array q_rot,
+    const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook,
+    const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook,
+    int token_count, int repeat_count, int num_blocks, int block_size,
+    int L, int q_offset,
+    int key_bits, int value_bits, int dim, int nr0, const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::turbo_flash_pass1_nr0_causal(
+        mlx_array_get_(q_rot),
+        mlx_array_get_(key_packed), mlx_array_get_(key_norms), mlx_array_get_(key_codebook),
+        mlx_array_get_(val_packed), mlx_array_get_(val_norms), mlx_array_get_(val_codebook),
+        token_count, repeat_count, num_blocks, block_size,
+        L, q_offset,
+        key_bits, value_bits, dim, nr0, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
 extern "C" int mlx_fast_turbo_flash_pass2(
     mlx_array* res,
     const mlx_array o_partials, const mlx_array m_partials, const mlx_array l_partials,
