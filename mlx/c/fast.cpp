@@ -859,6 +859,26 @@ extern "C" int mlx_fast_gated_delta_step(
   return 0;
 }
 
+extern "C" int mlx_fast_gated_delta_step_fused(
+    mlx_vector_array* res,
+    const mlx_array q_raw, const mlx_array k_raw, const mlx_array v,
+    const mlx_array a, const mlx_array b_input,
+    const mlx_array a_log, const mlx_array dt_bias,
+    const mlx_array state, const mlx_array mask /* may be null */,
+    int T, int Dk, int Dv, int Hk, int Hv,
+    const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::gated_delta_step_fused(
+        mlx_array_get_(q_raw), mlx_array_get_(k_raw), mlx_array_get_(v),
+        mlx_array_get_(a), mlx_array_get_(b_input),
+        mlx_array_get_(a_log), mlx_array_get_(dt_bias),
+        mlx_array_get_(state),
+        (mask.ctx ? std::make_optional(mlx_array_get_(mask)) : std::nullopt),
+        T, Dk, Dv, Hk, Hv, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
 // ============================================================================
 // SSM C bridge
 // ============================================================================
