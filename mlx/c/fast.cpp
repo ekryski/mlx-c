@@ -541,6 +541,28 @@ extern "C" int mlx_fast_rms_norm(
   }
   return 0;
 }
+extern "C" int mlx_fast_rms_norm_residual(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array residual,
+    const mlx_array weight,
+    float eps,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::rms_norm_residual(
+            mlx_array_get_(x),
+            mlx_array_get_(residual),
+            mlx_array_get_(weight),
+            eps,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
 extern "C" int mlx_fast_rms_norm_rope(
     mlx_array* res,
     const mlx_array x,
