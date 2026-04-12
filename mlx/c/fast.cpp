@@ -619,6 +619,32 @@ extern "C" int mlx_fast_rms_norm_qgemv(
   }
   return 0;
 }
+
+extern "C" int mlx_fast_batched_qkv_qgemv(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array w_q, const mlx_array scales_q, const mlx_array biases_q,
+    const mlx_array w_k, const mlx_array scales_k, const mlx_array biases_k,
+    const mlx_array w_v, const mlx_array scales_v, const mlx_array biases_v,
+    int group_size,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::batched_qkv_qgemv(
+            mlx_array_get_(x),
+            mlx_array_get_(w_q), mlx_array_get_(scales_q), mlx_array_get_(biases_q),
+            mlx_array_get_(w_k), mlx_array_get_(scales_k), mlx_array_get_(biases_k),
+            mlx_array_get_(w_v), mlx_array_get_(scales_v), mlx_array_get_(biases_v),
+            group_size,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
 extern "C" int mlx_fast_rope(
     mlx_array* res,
     const mlx_array x,
