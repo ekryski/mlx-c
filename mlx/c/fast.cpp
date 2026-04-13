@@ -645,6 +645,52 @@ extern "C" int mlx_fast_batched_qkv_qgemv(
   return 0;
 }
 
+extern "C" int mlx_fast_warp_moe_gate_up(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array w, const mlx_array scales, const mlx_array biases,
+    const mlx_array indices,
+    int group_size, int hidden_dims, int activation_type,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::warp_moe_gate_up(
+            mlx_array_get_(x),
+            mlx_array_get_(w), mlx_array_get_(scales), mlx_array_get_(biases),
+            mlx_array_get_(indices),
+            group_size, hidden_dims, activation_type,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_fast_warp_moe_down(
+    mlx_array* res,
+    const mlx_array activated,
+    const mlx_array w, const mlx_array scales, const mlx_array biases,
+    const mlx_array indices, const mlx_array scores,
+    int group_size, int hidden_dims, int out_dims,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::warp_moe_down(
+            mlx_array_get_(activated),
+            mlx_array_get_(w), mlx_array_get_(scales), mlx_array_get_(biases),
+            mlx_array_get_(indices), mlx_array_get_(scores),
+            group_size, hidden_dims, out_dims,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
 extern "C" int mlx_fast_rope(
     mlx_array* res,
     const mlx_array x,
