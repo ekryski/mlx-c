@@ -541,6 +541,156 @@ extern "C" int mlx_fast_rms_norm(
   }
   return 0;
 }
+extern "C" int mlx_fast_rms_norm_residual(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array residual,
+    const mlx_array weight,
+    float eps,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::rms_norm_residual(
+            mlx_array_get_(x),
+            mlx_array_get_(residual),
+            mlx_array_get_(weight),
+            eps,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+extern "C" int mlx_fast_rms_norm_rope(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array weight,
+    const mlx_array inv_freqs,
+    float eps,
+    int offset,
+    int n_heads,
+    int seq_len,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::rms_norm_rope(
+            mlx_array_get_(x),
+            mlx_array_get_(weight),
+            mlx_array_get_(inv_freqs),
+            eps,
+            offset,
+            n_heads,
+            seq_len,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+extern "C" int mlx_fast_rms_norm_qgemv(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array norm_weight,
+    const mlx_array w,
+    const mlx_array scales,
+    const mlx_array biases,
+    float eps,
+    int group_size,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::rms_norm_qgemv(
+            mlx_array_get_(x),
+            mlx_array_get_(norm_weight),
+            mlx_array_get_(w),
+            mlx_array_get_(scales),
+            mlx_array_get_(biases),
+            eps,
+            group_size,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_fast_batched_qkv_qgemv(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array w_q, const mlx_array scales_q, const mlx_array biases_q,
+    const mlx_array w_k, const mlx_array scales_k, const mlx_array biases_k,
+    const mlx_array w_v, const mlx_array scales_v, const mlx_array biases_v,
+    int group_size,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::batched_qkv_qgemv(
+            mlx_array_get_(x),
+            mlx_array_get_(w_q), mlx_array_get_(scales_q), mlx_array_get_(biases_q),
+            mlx_array_get_(w_k), mlx_array_get_(scales_k), mlx_array_get_(biases_k),
+            mlx_array_get_(w_v), mlx_array_get_(scales_v), mlx_array_get_(biases_v),
+            group_size,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_fast_warp_moe_gate_up(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array w, const mlx_array scales, const mlx_array biases,
+    const mlx_array indices,
+    int group_size, int hidden_dims, int activation_type,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::warp_moe_gate_up(
+            mlx_array_get_(x),
+            mlx_array_get_(w), mlx_array_get_(scales), mlx_array_get_(biases),
+            mlx_array_get_(indices),
+            group_size, hidden_dims, activation_type,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_fast_warp_moe_down(
+    mlx_array* res,
+    const mlx_array activated,
+    const mlx_array w, const mlx_array scales, const mlx_array biases,
+    const mlx_array indices, const mlx_array scores,
+    int group_size, int hidden_dims, int out_dims,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::warp_moe_down(
+            mlx_array_get_(activated),
+            mlx_array_get_(w), mlx_array_get_(scales), mlx_array_get_(biases),
+            mlx_array_get_(indices), mlx_array_get_(scores),
+            group_size, hidden_dims, out_dims,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
 extern "C" int mlx_fast_rope(
     mlx_array* res,
     const mlx_array x,
@@ -629,5 +779,233 @@ extern "C" int mlx_fast_scaled_dot_product_attention(
     mlx_error(e.what());
     return 1;
   }
+  return 0;
+}
+
+// ============================================================================
+// TurboQuant C bridge
+// ============================================================================
+
+extern "C" int mlx_fast_turbo_score(
+    mlx_array* res,
+    const mlx_array q_rot, const mlx_array packed,
+    const mlx_array norms, const mlx_array codebook,
+    int token_count, int repeat_count, int bits, int dim,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(*res, mlx::core::fast::turbo_score(
+        mlx_array_get_(q_rot), mlx_array_get_(packed),
+        mlx_array_get_(norms), mlx_array_get_(codebook),
+        token_count, repeat_count, bits, dim, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_encode(
+    mlx_vector_array* res,
+    const mlx_array input, const mlx_array rotation,
+    const mlx_array boundaries, const mlx_array codebook,
+    int bits, int dim, const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::turbo_encode(
+        mlx_array_get_(input), mlx_array_get_(rotation),
+        mlx_array_get_(boundaries), mlx_array_get_(codebook),
+        bits, dim, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_encode_wht(
+    mlx_vector_array* res,
+    const mlx_array input, const mlx_array wht_signs,
+    const mlx_array boundaries,
+    int bits, int dim, const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::turbo_encode_wht(
+        mlx_array_get_(input), mlx_array_get_(wht_signs),
+        mlx_array_get_(boundaries),
+        bits, dim, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_flash_pass1(
+    mlx_vector_array* res,
+    const mlx_array q_rot,
+    const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook,
+    const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook,
+    int token_count, int repeat_count, int num_blocks, int block_size,
+    int key_bits, int value_bits, int dim, const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::turbo_flash_pass1(
+        mlx_array_get_(q_rot),
+        mlx_array_get_(key_packed), mlx_array_get_(key_norms), mlx_array_get_(key_codebook),
+        mlx_array_get_(val_packed), mlx_array_get_(val_norms), mlx_array_get_(val_codebook),
+        token_count, repeat_count, num_blocks, block_size,
+        key_bits, value_bits, dim, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_flash_pass1_causal(
+    mlx_vector_array* res,
+    const mlx_array q_rot,
+    const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook,
+    const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook,
+    int token_count, int repeat_count, int num_blocks, int block_size,
+    int L, int q_offset,
+    int key_bits, int value_bits, int dim, const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::turbo_flash_pass1_causal(
+        mlx_array_get_(q_rot),
+        mlx_array_get_(key_packed), mlx_array_get_(key_norms), mlx_array_get_(key_codebook),
+        mlx_array_get_(val_packed), mlx_array_get_(val_norms), mlx_array_get_(val_codebook),
+        token_count, repeat_count, num_blocks, block_size,
+        L, q_offset,
+        key_bits, value_bits, dim, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_flash_pass1_nr0(
+    mlx_vector_array* res,
+    const mlx_array q_rot,
+    const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook,
+    const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook,
+    int token_count, int repeat_count, int num_blocks, int block_size,
+    int key_bits, int value_bits, int dim, int nr0, const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::turbo_flash_pass1_nr0(
+        mlx_array_get_(q_rot),
+        mlx_array_get_(key_packed), mlx_array_get_(key_norms), mlx_array_get_(key_codebook),
+        mlx_array_get_(val_packed), mlx_array_get_(val_norms), mlx_array_get_(val_codebook),
+        token_count, repeat_count, num_blocks, block_size,
+        key_bits, value_bits, dim, nr0, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_flash_pass1_nr0_causal(
+    mlx_vector_array* res,
+    const mlx_array q_rot,
+    const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook,
+    const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook,
+    int token_count, int repeat_count, int num_blocks, int block_size,
+    int L, int q_offset,
+    int key_bits, int value_bits, int dim, int nr0, const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::turbo_flash_pass1_nr0_causal(
+        mlx_array_get_(q_rot),
+        mlx_array_get_(key_packed), mlx_array_get_(key_norms), mlx_array_get_(key_codebook),
+        mlx_array_get_(val_packed), mlx_array_get_(val_norms), mlx_array_get_(val_codebook),
+        token_count, repeat_count, num_blocks, block_size,
+        L, q_offset,
+        key_bits, value_bits, dim, nr0, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_flash_pass2(
+    mlx_array* res,
+    const mlx_array o_partials, const mlx_array m_partials, const mlx_array l_partials,
+    int num_blocks, int dim, const mlx_stream s) {
+  try {
+    mlx_array_set_(*res, mlx::core::fast::turbo_flash_pass2(
+        mlx_array_get_(o_partials), mlx_array_get_(m_partials), mlx_array_get_(l_partials),
+        num_blocks, dim, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_flash_pass2_fused(
+    mlx_array* res,
+    const mlx_array o_partials, const mlx_array m_partials, const mlx_array l_partials,
+    const mlx_array val_rotation,
+    int num_blocks, int dim, const mlx_stream s) {
+  try {
+    mlx_array_set_(*res, mlx::core::fast::turbo_flash_pass2_fused(
+        mlx_array_get_(o_partials), mlx_array_get_(m_partials), mlx_array_get_(l_partials),
+        mlx_array_get_(val_rotation),
+        num_blocks, dim, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_turbo_value(
+    mlx_array* res,
+    const mlx_array weights, const mlx_array packed,
+    const mlx_array norms, const mlx_array codebook,
+    int token_count, int repeat_count, float sparse_threshold,
+    int bits, int dim, const mlx_stream s) {
+  try {
+    mlx_array_set_(*res, mlx::core::fast::turbo_value(
+        mlx_array_get_(weights), mlx_array_get_(packed),
+        mlx_array_get_(norms), mlx_array_get_(codebook),
+        token_count, repeat_count, sparse_threshold,
+        bits, dim, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+// ============================================================================
+// GatedDelta C bridge
+// ============================================================================
+
+extern "C" int mlx_fast_gated_delta_step(
+    mlx_vector_array* res,
+    const mlx_array q, const mlx_array k, const mlx_array v,
+    const mlx_array g, const mlx_array beta, const mlx_array state,
+    const mlx_array mask /* may be null */,
+    int T, bool fused,
+    int Dk, int Dv, int Hk, int Hv,
+    const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::gated_delta_step(
+        mlx_array_get_(q), mlx_array_get_(k), mlx_array_get_(v),
+        mlx_array_get_(g), mlx_array_get_(beta), mlx_array_get_(state),
+        (mask.ctx ? std::make_optional(mlx_array_get_(mask)) : std::nullopt),
+        T, fused, Dk, Dv, Hk, Hv, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_gated_delta_step_fused(
+    mlx_vector_array* res,
+    const mlx_array q_raw, const mlx_array k_raw, const mlx_array v,
+    const mlx_array a, const mlx_array b_input,
+    const mlx_array a_log, const mlx_array dt_bias,
+    const mlx_array state, const mlx_array mask /* may be null */,
+    int T, int Dk, int Dv, int Hk, int Hv,
+    const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::gated_delta_step_fused(
+        mlx_array_get_(q_raw), mlx_array_get_(k_raw), mlx_array_get_(v),
+        mlx_array_get_(a), mlx_array_get_(b_input),
+        mlx_array_get_(a_log), mlx_array_get_(dt_bias),
+        mlx_array_get_(state),
+        (mask.ctx ? std::make_optional(mlx_array_get_(mask)) : std::nullopt),
+        T, Dk, Dv, Hk, Hv, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+// ============================================================================
+// SSM C bridge
+// ============================================================================
+
+extern "C" int mlx_fast_ssm_step(
+    mlx_vector_array* res,
+    const mlx_array X, const mlx_array A_log, const mlx_array B,
+    const mlx_array C, const mlx_array D, const mlx_array dt,
+    const mlx_array state,
+    int Dh, int Ds, int H, int G,
+    const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::ssm_step(
+        mlx_array_get_(X), mlx_array_get_(A_log), mlx_array_get_(B),
+        mlx_array_get_(C), mlx_array_get_(D), mlx_array_get_(dt),
+        mlx_array_get_(state),
+        Dh, Ds, H, G, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
   return 0;
 }

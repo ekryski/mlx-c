@@ -166,6 +166,13 @@ int mlx_fast_rms_norm(
     const mlx_array weight /* may be null */,
     float eps,
     const mlx_stream s);
+int mlx_fast_rms_norm_residual(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array residual,
+    const mlx_array weight,
+    float eps,
+    const mlx_stream s);
 int mlx_fast_rope(
     mlx_array* res,
     const mlx_array x,
@@ -198,6 +205,23 @@ int mlx_fast_scaled_dot_product_attention(
     const mlx_stream s);
 
 /**@}*/
+
+// TurboQuant
+int mlx_fast_turbo_score(mlx_array* res, const mlx_array q_rot, const mlx_array packed, const mlx_array norms, const mlx_array codebook, int token_count, int repeat_count, int bits, int dim, const mlx_stream s);
+int mlx_fast_turbo_encode(mlx_vector_array* res, const mlx_array input, const mlx_array rotation, const mlx_array boundaries, const mlx_array codebook, int bits, int dim, const mlx_stream s);
+int mlx_fast_turbo_encode_wht(mlx_vector_array* res, const mlx_array input, const mlx_array wht_signs, const mlx_array boundaries, int bits, int dim, const mlx_stream s);
+int mlx_fast_turbo_flash_pass1(mlx_vector_array* res, const mlx_array q_rot, const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook, const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook, int token_count, int repeat_count, int num_blocks, int block_size, int key_bits, int value_bits, int dim, const mlx_stream s);
+int mlx_fast_turbo_flash_pass1_causal(mlx_vector_array* res, const mlx_array q_rot, const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook, const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook, int token_count, int repeat_count, int num_blocks, int block_size, int L, int q_offset, int key_bits, int value_bits, int dim, const mlx_stream s);
+int mlx_fast_turbo_flash_pass1_nr0(mlx_vector_array* res, const mlx_array q_rot, const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook, const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook, int token_count, int repeat_count, int num_blocks, int block_size, int key_bits, int value_bits, int dim, int nr0, const mlx_stream s);
+int mlx_fast_turbo_flash_pass1_nr0_causal(mlx_vector_array* res, const mlx_array q_rot, const mlx_array key_packed, const mlx_array key_norms, const mlx_array key_codebook, const mlx_array val_packed, const mlx_array val_norms, const mlx_array val_codebook, int token_count, int repeat_count, int num_blocks, int block_size, int L, int q_offset, int key_bits, int value_bits, int dim, int nr0, const mlx_stream s);
+int mlx_fast_turbo_flash_pass2(mlx_array* res, const mlx_array o_partials, const mlx_array m_partials, const mlx_array l_partials, int num_blocks, int dim, const mlx_stream s);
+int mlx_fast_turbo_flash_pass2_fused(mlx_array* res, const mlx_array o_partials, const mlx_array m_partials, const mlx_array l_partials, const mlx_array val_rotation, int num_blocks, int dim, const mlx_stream s);
+int mlx_fast_turbo_value(mlx_array* res, const mlx_array weights, const mlx_array packed, const mlx_array norms, const mlx_array codebook, int token_count, int repeat_count, float sparse_threshold, int bits, int dim, const mlx_stream s);
+// GatedDelta
+int mlx_fast_gated_delta_step(mlx_vector_array* res, const mlx_array q, const mlx_array k, const mlx_array v, const mlx_array g, const mlx_array beta, const mlx_array state, const mlx_array mask, int T, bool fused, int Dk, int Dv, int Hk, int Hv, const mlx_stream s);
+int mlx_fast_gated_delta_step_fused(mlx_vector_array* res, const mlx_array q_raw, const mlx_array k_raw, const mlx_array v, const mlx_array a, const mlx_array b_input, const mlx_array a_log, const mlx_array dt_bias, const mlx_array state, const mlx_array mask, int T, int Dk, int Dv, int Hk, int Hv, const mlx_stream s);
+// SSM
+int mlx_fast_ssm_step(mlx_vector_array* res, const mlx_array X, const mlx_array A_log, const mlx_array B, const mlx_array C, const mlx_array D, const mlx_array dt, const mlx_array state, int Dh, int Ds, int H, int G, const mlx_stream s);
 
 #ifdef __cplusplus
 }
