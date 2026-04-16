@@ -6,14 +6,8 @@
 #ifndef MLX_IO_TYPES_PRIVATE_H
 #define MLX_IO_TYPES_PRIVATE_H
 
-// Forward declare the struct to avoid include ordering issues in SPM module builds.
-// The full definition lives in mlx/c/io_types.h.
-#ifndef MLX_IO_TYPES_H
-typedef struct mlx_io_gguf_ {
-  void* ctx;
-} mlx_io_gguf;
-#endif
-
+// Include io_types.h first so the typedef is visible in this TU.
+// Must precede mlx/mlx.h to avoid SPM module include ordering issues.
 #include "mlx/c/io_types.h"
 #include "mlx/mlx.h"
 
