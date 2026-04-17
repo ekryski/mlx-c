@@ -44,6 +44,26 @@ int mlx_metal_reset_dispatch_counter(void);
 /** Read the cumulative dispatch counter since the last reset. */
 int mlx_metal_total_dispatches(uint64_t* res);
 
+/**
+ * Start recording Metal kernel pipeline-state labels on every dispatch.
+ * Calling this clears any prior log. Enables the ICB dispatch-list
+ * stability audit.
+ */
+int mlx_metal_start_kernel_log(void);
+
+/** Stop recording kernel labels. */
+int mlx_metal_stop_kernel_log(void);
+
+/** Number of entries in the current kernel log. */
+int mlx_metal_kernel_log_size(size_t* res);
+
+/**
+ * Write the kernel label at index i into `*label_out`. Returns nullptr
+ * in `*label_out` if i is out of range. The C string is valid until the
+ * next `mlx_metal_start_kernel_log()`.
+ */
+int mlx_metal_kernel_log_at(size_t i, const char** label_out);
+
 /**@}*/
 
 #ifdef __cplusplus

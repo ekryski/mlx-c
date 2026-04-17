@@ -53,3 +53,39 @@ extern "C" int mlx_metal_total_dispatches(uint64_t* res) {
   }
   return 0;
 }
+extern "C" int mlx_metal_start_kernel_log(void) {
+  try {
+    mlx::core::metal::start_kernel_log();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+extern "C" int mlx_metal_stop_kernel_log(void) {
+  try {
+    mlx::core::metal::stop_kernel_log();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+extern "C" int mlx_metal_kernel_log_size(size_t* res) {
+  try {
+    *res = mlx::core::metal::kernel_log_size();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+extern "C" int mlx_metal_kernel_log_at(size_t i, const char** label_out) {
+  try {
+    *label_out = mlx::core::metal::kernel_log_at(i);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
