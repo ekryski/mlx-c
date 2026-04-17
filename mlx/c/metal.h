@@ -122,6 +122,35 @@ int mlx_metal_icb_abort_recording(mlx_stream stream);
 int mlx_metal_icb_replay(mlx_stream stream, mlx_metal_icb_recorder rec);
 
 /**
+ * Associate `name_id` with the MTL::Buffer underlying `array` during
+ * the active recording on `stream`. Any already-recorded dispatch
+ * that bound that buffer is tagged immediately; any subsequent bind
+ * of the same buffer under this recorder is also tagged on end_command.
+ * Returns an error if `stream` is not currently recording.
+ */
+int mlx_metal_icb_tag_binding(
+    mlx_stream stream,
+    uint32_t name_id,
+    const mlx_array array);
+
+/**
+ * Replay `rec` on `stream` with per-name buffer overrides. For each
+ * `i` in `[0, n_overrides)`, every dispatch previously tagged with
+ * `names[i]` has its kernel-buffer binding rewritten to the buffer
+ * underlying `arrays[i]` (offset included from the array's storage)
+ * before the ICB is executed. Tags not present in `names` keep their
+ * recorded binding; names not present in the recorder's tag table
+ * are silently skipped. Override writes mutate the recorder's ICBs
+ * in place — see `IndirectCommandRecorder::replay_with_overrides`.
+ */
+int mlx_metal_icb_replay_with_overrides(
+    mlx_stream stream,
+    mlx_metal_icb_recorder rec,
+    const uint32_t* names,
+    const mlx_array* arrays,
+    size_t n_overrides);
+
+/**
  * Number of ICB segments (barrier-separated blocks) in the recording.
  */
 int mlx_metal_icb_recorder_num_segments(
