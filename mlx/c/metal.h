@@ -107,6 +107,13 @@ int mlx_metal_icb_end_recording(
     mlx_metal_icb_recorder* out);
 
 /**
+ * Cancel the current recording session without producing a recorder.
+ * Safe to call whether or not the stream is currently recording — used
+ * to clean up after an exception in the recording block.
+ */
+int mlx_metal_icb_abort_recording(mlx_stream stream);
+
+/**
  * Replay a previously-captured recording on `stream`. The live encoder
  * issues `useResource` for every buffer referenced by each segment and
  * `executeCommandsInBuffer` for the segment's range, with a memory

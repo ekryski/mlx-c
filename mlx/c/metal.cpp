@@ -158,6 +158,21 @@ extern "C" int mlx_metal_icb_end_recording(
   return 0;
 }
 
+extern "C" int mlx_metal_icb_abort_recording(mlx_stream stream) {
+  try {
+    auto* s = unwrap_stream(stream);
+    if (!s) {
+      throw std::invalid_argument("[mlx_metal_icb_abort_recording] null stream");
+    }
+    auto& enc = mlx::core::metal::get_command_encoder(*s);
+    enc.abort_icb_recording();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
 extern "C" int mlx_metal_icb_replay(
     mlx_stream stream,
     mlx_metal_icb_recorder rec) {
