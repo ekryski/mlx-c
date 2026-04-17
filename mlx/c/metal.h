@@ -64,6 +64,73 @@ int mlx_metal_kernel_log_size(size_t* res);
  */
 int mlx_metal_kernel_log_at(size_t i, const char** label_out);
 
+/**
+ * Indirect Command Buffer (ICB) capture & replay.
+ *
+ * The ICB path lets callers pre-encode a stable sequence of compute
+ * dispatches once and replay it per decode step, trading one-time build
+ * cost for substantially lower per-replay CPU encoding overhead. See
+ * mlx/backend/metal/icb.h for semantics, invariants, and the
+ * barrier-splitting design.
+ */
+
+/** Opaque handle to an IndirectCommandRecorder. */
+typedef struct mlx_metal_icb_recorder_ {
+  void* ctx;
+} mlx_metal_icb_recorder;
+
+/**
+ * Whether the current GPU supports MTLIndirectCommandBuffer-backed
+ * compute. Effectively true on every M-series device.
+ */
+int mlx_metal_icb_is_supported(bool* res);
+
+/**
+ * Begin recording on `stream`'s CommandEncoder. Subsequent dispatches
+ * emitted through the encoder accumulate into an ICB recorder instead
+ * of running live. `max_commands_per_segment` caps the size of each ICB
+ * segment (a segment is started per memory barrier); `bytes_arena_cap`
+ * is the shared pool for spilled `setBytes` payloads.
+ */
+int mlx_metal_icb_begin_recording(
+    mlx_stream stream,
+    size_t max_commands_per_segment,
+    size_t bytes_arena_cap);
+
+/**
+ * Finalize recording on `stream` and move the recorder out via `*out`.
+ * The caller owns `*out` and must release it with
+ * `mlx_metal_icb_recorder_free`.
+ */
+int mlx_metal_icb_end_recording(
+    mlx_stream stream,
+    mlx_metal_icb_recorder* out);
+
+/**
+ * Replay a previously-captured recording on `stream`. The live encoder
+ * issues `useResource` for every buffer referenced by each segment and
+ * `executeCommandsInBuffer` for the segment's range, with a memory
+ * barrier between consecutive segments.
+ */
+int mlx_metal_icb_replay(mlx_stream stream, mlx_metal_icb_recorder rec);
+
+/**
+ * Number of ICB segments (barrier-separated blocks) in the recording.
+ */
+int mlx_metal_icb_recorder_num_segments(
+    mlx_metal_icb_recorder rec,
+    size_t* res);
+
+/**
+ * Total number of commands across all segments.
+ */
+int mlx_metal_icb_recorder_size(mlx_metal_icb_recorder rec, size_t* res);
+
+/**
+ * Release a recorder. Safe to pass a recorder whose `ctx` is NULL.
+ */
+int mlx_metal_icb_recorder_free(mlx_metal_icb_recorder rec);
+
 /**@}*/
 
 #ifdef __cplusplus

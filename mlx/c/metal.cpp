@@ -4,9 +4,24 @@
 /*                                                    */
 
 #include "mlx/c/metal.h"
+#include "mlx/backend/metal/device.h"
+#include "mlx/backend/metal/icb.h"
 #include "mlx/backend/metal/metal.h"
 #include "mlx/c/error.h"
 #include "mlx/c/private/mlx.h"
+
+namespace {
+
+inline mlx::core::metal::IndirectCommandRecorder* unwrap_icb_recorder(
+    mlx_metal_icb_recorder rec) {
+  return static_cast<mlx::core::metal::IndirectCommandRecorder*>(rec.ctx);
+}
+
+inline mlx::core::Stream* unwrap_stream(mlx_stream s) {
+  return static_cast<mlx::core::Stream*>(s.ctx);
+}
+
+} // namespace
 
 extern "C" int mlx_metal_is_available(bool* res) {
   try {
@@ -35,6 +50,7 @@ extern "C" int mlx_metal_stop_capture(void) {
   }
   return 0;
 }
+
 extern "C" int mlx_metal_reset_dispatch_counter(void) {
   try {
     mlx::core::metal::reset_dispatch_counter();
@@ -44,6 +60,7 @@ extern "C" int mlx_metal_reset_dispatch_counter(void) {
   }
   return 0;
 }
+
 extern "C" int mlx_metal_total_dispatches(uint64_t* res) {
   try {
     *res = mlx::core::metal::total_dispatches();
@@ -53,6 +70,7 @@ extern "C" int mlx_metal_total_dispatches(uint64_t* res) {
   }
   return 0;
 }
+
 extern "C" int mlx_metal_start_kernel_log(void) {
   try {
     mlx::core::metal::start_kernel_log();
@@ -62,6 +80,7 @@ extern "C" int mlx_metal_start_kernel_log(void) {
   }
   return 0;
 }
+
 extern "C" int mlx_metal_stop_kernel_log(void) {
   try {
     mlx::core::metal::stop_kernel_log();
@@ -71,6 +90,7 @@ extern "C" int mlx_metal_stop_kernel_log(void) {
   }
   return 0;
 }
+
 extern "C" int mlx_metal_kernel_log_size(size_t* res) {
   try {
     *res = mlx::core::metal::kernel_log_size();
@@ -80,9 +100,117 @@ extern "C" int mlx_metal_kernel_log_size(size_t* res) {
   }
   return 0;
 }
+
 extern "C" int mlx_metal_kernel_log_at(size_t i, const char** label_out) {
   try {
     *label_out = mlx::core::metal::kernel_log_at(i);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_is_supported(bool* res) {
+  try {
+    auto& d = mlx::core::metal::device(mlx::core::Device::gpu);
+    *res = mlx::core::metal::IndirectCommandRecorder::is_supported(d);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_begin_recording(
+    mlx_stream stream,
+    size_t max_commands_per_segment,
+    size_t bytes_arena_cap) {
+  try {
+    auto* s = unwrap_stream(stream);
+    if (!s) {
+      throw std::invalid_argument("[mlx_metal_icb_begin_recording] null stream");
+    }
+    auto& enc = mlx::core::metal::get_command_encoder(*s);
+    enc.begin_icb_recording(max_commands_per_segment, bytes_arena_cap);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_end_recording(
+    mlx_stream stream,
+    mlx_metal_icb_recorder* out) {
+  try {
+    auto* s = unwrap_stream(stream);
+    if (!s || !out) {
+      throw std::invalid_argument("[mlx_metal_icb_end_recording] null stream/out");
+    }
+    auto& enc = mlx::core::metal::get_command_encoder(*s);
+    auto recorder = enc.end_icb_recording();
+    out->ctx = recorder.release();  // transfer ownership to C caller
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_replay(
+    mlx_stream stream,
+    mlx_metal_icb_recorder rec) {
+  try {
+    auto* s = unwrap_stream(stream);
+    auto* r = unwrap_icb_recorder(rec);
+    if (!s || !r) {
+      throw std::invalid_argument("[mlx_metal_icb_replay] null stream/recorder");
+    }
+    auto& enc = mlx::core::metal::get_command_encoder(*s);
+    enc.replay_icb(*r);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_recorder_num_segments(
+    mlx_metal_icb_recorder rec,
+    size_t* res) {
+  try {
+    auto* r = unwrap_icb_recorder(rec);
+    if (!r || !res) {
+      throw std::invalid_argument("[mlx_metal_icb_recorder_num_segments] null arg");
+    }
+    *res = r->num_segments();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_recorder_size(
+    mlx_metal_icb_recorder rec,
+    size_t* res) {
+  try {
+    auto* r = unwrap_icb_recorder(rec);
+    if (!r || !res) {
+      throw std::invalid_argument("[mlx_metal_icb_recorder_size] null arg");
+    }
+    *res = r->size();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_recorder_free(mlx_metal_icb_recorder rec) {
+  try {
+    delete unwrap_icb_recorder(rec);
   } catch (std::exception& e) {
     mlx_error(e.what());
     return 1;
