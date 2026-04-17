@@ -35,3 +35,21 @@ extern "C" int mlx_metal_stop_capture(void) {
   }
   return 0;
 }
+extern "C" int mlx_metal_reset_dispatch_counter(void) {
+  try {
+    mlx::core::metal::reset_dispatch_counter();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+extern "C" int mlx_metal_total_dispatches(uint64_t* res) {
+  try {
+    *res = mlx::core::metal::total_dispatches();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
