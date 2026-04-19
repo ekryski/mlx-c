@@ -592,6 +592,26 @@ extern "C" int mlx_metal_persistent_ab_set_scalar64(
   return 0;
 }
 
+extern "C" int mlx_metal_persistent_ab_set_buffer_ptr(
+    mlx_metal_persistent_ab ab,
+    int slot,
+    const mlx_array array) {
+  try {
+    auto* p = unwrap_persistent_ab(ab);
+    if (!p || !array.ctx) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_set_buffer_ptr] null handle/array");
+    }
+    const auto& a = mlx_array_get_(array);
+    const auto* buf = static_cast<const MTL::Buffer*>(a.buffer().ptr());
+    p->set_buffer_ptr(slot, buf, a.offset());
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
 extern "C" int mlx_metal_persistent_ab_free(mlx_metal_persistent_ab ab) {
   try {
     delete unwrap_persistent_ab(ab);
