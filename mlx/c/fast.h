@@ -15,6 +15,7 @@
 #include "mlx/c/distributed_group.h"
 #include "mlx/c/io_types.h"
 #include "mlx/c/map.h"
+#include "mlx/c/metal.h"
 #include "mlx/c/stream.h"
 #include "mlx/c/string.h"
 #include "mlx/c/vector.h"
@@ -166,6 +167,41 @@ int mlx_fast_rms_norm(
     const mlx_array weight /* may be null */,
     float eps,
     const mlx_stream s);
+/**
+ * RMSNorm overload that participates in decode-loop ICB replay via
+ * a caller-owned persistent argument buffer. The AB's MTLBuffer
+ * address is stable across calls so an ICB recording of this
+ * dispatch can be replayed correctly after the caller updates the
+ * handle's contents for the next step. When `ab_handle.ctx` is
+ * NULL, behavior is identical to `mlx_fast_rms_norm`.
+ */
+int mlx_fast_rms_norm_ab(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array weight /* may be null */,
+    float eps,
+    mlx_metal_persistent_ab ab_handle,
+    const mlx_stream s);
+
+/**
+ * SDPA overload that participates in decode-loop ICB replay via a
+ * caller-owned PersistentAb. The handle's MTLBuffer address is
+ * stable across calls; mask_mode accepts "", "causal", or "array".
+ * When `ab_handle.ctx` is NULL, behavior is identical to the plain
+ * mlx_fast_scaled_dot_product_attention.
+ */
+int mlx_fast_scaled_dot_product_attention_ab(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    float scale,
+    const char* mask_mode /* "" | "causal" | "array" */,
+    const mlx_array mask_arr /* may be null */,
+    const mlx_array sinks /* may be null */,
+    mlx_metal_persistent_ab ab_handle,
+    const mlx_stream s,
+    int window_size);
 int mlx_fast_rms_norm_residual(
     mlx_array* res,
     const mlx_array x,
@@ -192,6 +228,33 @@ int mlx_fast_rope_dynamic(
     float scale,
     const mlx_array offset,
     const mlx_array freqs /* may be null */,
+    const mlx_stream s);
+
+/**
+ * RoPE overload that participates in decode-loop ICB replay via a
+ * caller-owned PersistentAb. The handle's MTLBuffer address is
+ * stable across calls. The single-token AB path is taken only when
+ * the input shape and offset satisfy the existing single-token
+ * conditions (T==1, contiguous, scalar offset); for prefill or
+ * non-contiguous inputs the call falls back to the legacy path
+ * (handle is silently unused). When `ab_handle.ctx` is NULL,
+ * behavior is identical to `mlx_fast_rope_dynamic`.
+ *
+ * Layout depends on whether `freqs` is supplied — use
+ * `mlx_metal_persistent_ab_new_rope` (6 slots) for the base path or
+ * `mlx_metal_persistent_ab_new_rope_freqs` (7 slots) for the freqs
+ * path. Mismatched layouts throw at eval time.
+ */
+int mlx_fast_rope_ab(
+    mlx_array* res,
+    const mlx_array x,
+    int dims,
+    bool traditional,
+    mlx_optional_float base,
+    float scale,
+    const mlx_array offset,
+    const mlx_array freqs /* may be null */,
+    mlx_metal_persistent_ab ab_handle,
     const mlx_stream s);
 int mlx_fast_scaled_dot_product_attention(
     mlx_array* res,

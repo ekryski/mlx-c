@@ -4,6 +4,7 @@
 /*                                                    */
 
 #include "mlx/c/fast.h"
+#include "mlx/backend/metal/persistent_ab.h"
 #include "mlx/c/error.h"
 #include "mlx/c/private/mlx.h"
 #include "mlx/fast.h"
@@ -541,6 +542,35 @@ extern "C" int mlx_fast_rms_norm(
   }
   return 0;
 }
+extern "C" int mlx_fast_rms_norm_ab(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array weight /* may be null */,
+    float eps,
+    mlx_metal_persistent_ab ab_handle,
+    const mlx_stream s) {
+  try {
+    auto* raw = static_cast<mlx::core::metal::PersistentAb*>(ab_handle.ctx);
+    // Wrap the raw pointer in an aliasing shared_ptr with a no-op
+    // deleter — the C API handle still owns the lifetime; this
+    // shared_ptr is just transport into the mlx primitive factory.
+    std::shared_ptr<mlx::core::metal::PersistentAb> handle(
+        raw, [](mlx::core::metal::PersistentAb*) {});
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::rms_norm(
+            mlx_array_get_(x),
+            (weight.ctx ? std::make_optional(mlx_array_get_(weight))
+                        : std::nullopt),
+            eps,
+            std::move(handle),
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
 extern "C" int mlx_fast_rms_norm_residual(
     mlx_array* res,
     const mlx_array x,
@@ -751,6 +781,41 @@ extern "C" int mlx_fast_rope_dynamic(
   }
   return 0;
 }
+extern "C" int mlx_fast_rope_ab(
+    mlx_array* res,
+    const mlx_array x,
+    int dims,
+    bool traditional,
+    mlx_optional_float base,
+    float scale,
+    const mlx_array offset,
+    const mlx_array freqs /* may be null */,
+    mlx_metal_persistent_ab ab_handle,
+    const mlx_stream s) {
+  try {
+    auto* raw = static_cast<mlx::core::metal::PersistentAb*>(ab_handle.ctx);
+    std::shared_ptr<mlx::core::metal::PersistentAb> handle(
+        raw, [](mlx::core::metal::PersistentAb*) {});
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::rope(
+            mlx_array_get_(x),
+            dims,
+            traditional,
+            (base.has_value ? std::make_optional<float>(base.value)
+                            : std::nullopt),
+            scale,
+            mlx_array_get_(offset),
+            (freqs.ctx ? std::make_optional(mlx_array_get_(freqs))
+                       : std::nullopt),
+            std::move(handle),
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
 extern "C" int mlx_fast_scaled_dot_product_attention(
     mlx_array* res,
     const mlx_array queries,
@@ -775,6 +840,44 @@ extern "C" int mlx_fast_scaled_dot_product_attention(
             (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
                        : std::nullopt),
             mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_fast_scaled_dot_product_attention_ab(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    float scale,
+    const char* mask_mode,
+    const mlx_array mask_arr /* may be null */,
+    const mlx_array sinks /* may be null */,
+    mlx_metal_persistent_ab ab_handle,
+    const mlx_stream s,
+    int window_size) {
+  try {
+    auto* raw = static_cast<mlx::core::metal::PersistentAb*>(ab_handle.ctx);
+    std::shared_ptr<mlx::core::metal::PersistentAb> handle(
+        raw, [](mlx::core::metal::PersistentAb*) {});
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::scaled_dot_product_attention(
+            mlx_array_get_(queries),
+            mlx_array_get_(keys),
+            mlx_array_get_(values),
+            scale,
+            std::string(mask_mode),
+            (mask_arr.ctx ? std::make_optional(mlx_array_get_(mask_arr))
+                          : std::nullopt),
+            (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
+                       : std::nullopt),
+            std::move(handle),
+            mlx_stream_get_(s),
+            window_size));
   } catch (std::exception& e) {
     mlx_error(e.what());
     return 1;

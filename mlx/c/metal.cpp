@@ -4,9 +4,11 @@
 /*                                                    */
 
 #include "mlx/c/metal.h"
+#include "mlx/backend/metal/argument_buffer.h"
 #include "mlx/backend/metal/device.h"
 #include "mlx/backend/metal/icb.h"
 #include "mlx/backend/metal/metal.h"
+#include "mlx/backend/metal/persistent_ab.h"
 #include "mlx/c/error.h"
 #include "mlx/c/private/array.h"
 #include "mlx/c/private/mlx.h"
@@ -290,6 +292,230 @@ extern "C" int mlx_metal_icb_replay_with_overrides(
 
     auto& enc = mlx::core::metal::get_command_encoder(*s);
     enc.replay_icb_with_overrides(*r, overrides);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
+// PersistentAb — caller-owned argument buffer for ICB-replay-friendly
+// primitives. Currently RMSNorm-only in mlx-c; other primitive layouts
+// will land as Option A rolls out (see design doc).
+// ---------------------------------------------------------------------------
+
+namespace {
+
+inline mlx::core::metal::PersistentAb* unwrap_persistent_ab(
+    mlx_metal_persistent_ab ab) {
+  return static_cast<mlx::core::metal::PersistentAb*>(ab.ctx);
+}
+
+} // namespace
+
+extern "C" int mlx_metal_persistent_ab_new_rmsnorm(
+    mlx_metal_persistent_ab* out,
+    mlx_stream stream) {
+  try {
+    if (!out) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_rmsnorm] null out");
+    }
+    auto* s = unwrap_stream(stream);
+    if (!s) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_rmsnorm] null stream");
+    }
+    auto& d = mlx::core::metal::device(s->device);
+    using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    auto* ab = new mlx::core::metal::PersistentAb(
+        d,
+        std::vector<Slot>{
+            {Slot::Kind::BufferPtrOffset, 0, "x"},
+            {Slot::Kind::BufferPtrOffset, 0, "w"},
+            {Slot::Kind::BufferPtrOffset, 0, "out"},
+            {Slot::Kind::Float32, 0, "eps"},
+            {Slot::Kind::Scalar32, 0, "axis_size"},
+            {Slot::Kind::Scalar32, 0, "w_stride"},
+        });
+    out->ctx = ab;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_persistent_ab_set_float32(
+    mlx_metal_persistent_ab ab,
+    int slot,
+    float value) {
+  try {
+    auto* p = unwrap_persistent_ab(ab);
+    if (!p) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_set_float32] null handle");
+    }
+    p->set_float32(slot, value);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_persistent_ab_set_scalar32(
+    mlx_metal_persistent_ab ab,
+    int slot,
+    uint32_t value) {
+  try {
+    auto* p = unwrap_persistent_ab(ab);
+    if (!p) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_set_scalar32] null handle");
+    }
+    p->set_scalar32(slot, value);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_persistent_ab_set_scalar64(
+    mlx_metal_persistent_ab ab,
+    int slot,
+    uint64_t value) {
+  try {
+    auto* p = unwrap_persistent_ab(ab);
+    if (!p) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_set_scalar64] null handle");
+    }
+    p->set_scalar64(slot, value);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_persistent_ab_free(mlx_metal_persistent_ab ab) {
+  try {
+    delete unwrap_persistent_ab(ab);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_persistent_ab_new_sdpa(
+    mlx_metal_persistent_ab* out,
+    mlx_stream stream) {
+  try {
+    if (!out) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_sdpa] null out");
+    }
+    auto* s = unwrap_stream(stream);
+    if (!s) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_sdpa] null stream");
+    }
+    auto& d = mlx::core::metal::device(s->device);
+    using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    auto* ab = new mlx::core::metal::PersistentAb(
+        d,
+        std::vector<Slot>{
+            {Slot::Kind::BufferPtrOffset, 0, "queries"},
+            {Slot::Kind::BufferPtrOffset, 0, "keys"},
+            {Slot::Kind::BufferPtrOffset, 0, "values"},
+            {Slot::Kind::BufferPtrOffset, 0, "out"},
+            {Slot::Kind::BufferPtrOffset, 0, "mask"},
+            {Slot::Kind::BufferPtrOffset, 0, "sinks"},
+            {Slot::Kind::Scalar64, 0, "k_head_stride"},
+            {Slot::Kind::Scalar64, 0, "k_seq_stride"},
+            {Slot::Kind::Scalar64, 0, "v_head_stride"},
+            {Slot::Kind::Scalar64, 0, "v_seq_stride"},
+            {Slot::Kind::Float32, 0, "scale"},
+            {Slot::Kind::Scalar32, 0, "gqa_factor"},
+            {Slot::Kind::Scalar32, 0, "N"},
+            {Slot::Kind::Scalar32, 0, "blocks"},
+            {Slot::Kind::Scalar32, 0, "mask_kv_seq_stride"},
+            {Slot::Kind::Scalar32, 0, "mask_q_seq_stride"},
+            {Slot::Kind::Scalar32, 0, "mask_head_stride"},
+            {Slot::Kind::Scalar32, 0, "num_q_heads"},
+        });
+    out->ctx = ab;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_persistent_ab_new_rope(
+    mlx_metal_persistent_ab* out,
+    mlx_stream stream) {
+  try {
+    if (!out) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_rope] null out");
+    }
+    auto* s = unwrap_stream(stream);
+    if (!s) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_rope] null stream");
+    }
+    auto& d = mlx::core::metal::device(s->device);
+    using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    auto* ab = new mlx::core::metal::PersistentAb(
+        d,
+        std::vector<Slot>{
+            {Slot::Kind::BufferPtrOffset, 0, "in"},
+            {Slot::Kind::BufferPtrOffset, 0, "out"},
+            {Slot::Kind::BufferPtrOffset, 0, "offset"},
+            {Slot::Kind::Float32, 0, "scale"},
+            {Slot::Kind::Scalar64, 0, "stride"},
+            {Slot::Kind::Float32, 0, "base"},
+        });
+    out->ctx = ab;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_persistent_ab_new_rope_freqs(
+    mlx_metal_persistent_ab* out,
+    mlx_stream stream) {
+  try {
+    if (!out) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_rope_freqs] null out");
+    }
+    auto* s = unwrap_stream(stream);
+    if (!s) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_rope_freqs] null stream");
+    }
+    auto& d = mlx::core::metal::device(s->device);
+    using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    auto* ab = new mlx::core::metal::PersistentAb(
+        d,
+        std::vector<Slot>{
+            {Slot::Kind::BufferPtrOffset, 0, "in"},
+            {Slot::Kind::BufferPtrOffset, 0, "out"},
+            {Slot::Kind::BufferPtrOffset, 0, "offset"},
+            {Slot::Kind::Float32, 0, "scale"},
+            {Slot::Kind::Scalar64, 0, "stride"},
+            {Slot::Kind::BufferPtrOffset, 0, "freqs"},
+            {Slot::Kind::Scalar64, 0, "freq_stride"},
+        });
+    out->ctx = ab;
   } catch (std::exception& e) {
     mlx_error(e.what());
     return 1;
