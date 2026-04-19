@@ -12,6 +12,7 @@
 #include "mlx/c/error.h"
 #include "mlx/c/private/array.h"
 #include "mlx/c/private/mlx.h"
+#include "mlx/pin_session.h"
 
 #include <tuple>
 #include <vector>
@@ -329,6 +330,99 @@ extern "C" int mlx_metal_icb_build_only_session_free(
     mlx_metal_icb_build_only_session session) {
   try {
     delete unwrap_build_only_session(session);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+// ── Pin session bindings ──────────────────────────────────────────
+namespace {
+inline mlx::core::detail::PinSession* unwrap_pin_session(mlx_pin_session s) {
+  return static_cast<mlx::core::detail::PinSession*>(s.ctx);
+}
+} // namespace
+
+extern "C" int mlx_pin_session_begin_record(mlx_pin_session* out) {
+  try {
+    if (!out) {
+      throw std::invalid_argument(
+          "[mlx_pin_session_begin_record] null out");
+    }
+    auto* sess = mlx::core::detail::begin_pin_record_session();
+    out->ctx = sess;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_pin_session_end_record(
+    mlx_pin_session session, size_t* slot_count) {
+  try {
+    auto* sess = unwrap_pin_session(session);
+    if (!sess || !slot_count) {
+      throw std::invalid_argument(
+          "[mlx_pin_session_end_record] null session/slot_count");
+    }
+    *slot_count = mlx::core::detail::end_pin_record_session();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_pin_session_begin_replay(mlx_pin_session session) {
+  try {
+    auto* sess = unwrap_pin_session(session);
+    if (!sess) {
+      throw std::invalid_argument(
+          "[mlx_pin_session_begin_replay] null session");
+    }
+    mlx::core::detail::begin_pin_replay(sess);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_pin_session_end_replay(size_t* consumed) {
+  try {
+    if (!consumed) {
+      throw std::invalid_argument(
+          "[mlx_pin_session_end_replay] null consumed");
+    }
+    *consumed = mlx::core::detail::end_pin_replay();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_pin_session_free(mlx_pin_session session) {
+  try {
+    mlx::core::detail::free_pin_session(unwrap_pin_session(session));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_pin_session_slot_count(
+    mlx_pin_session session, size_t* res) {
+  try {
+    auto* sess = unwrap_pin_session(session);
+    if (!res) {
+      throw std::invalid_argument(
+          "[mlx_pin_session_slot_count] null res");
+    }
+    *res = mlx::core::detail::pin_session_slot_count(sess);
   } catch (std::exception& e) {
     mlx_error(e.what());
     return 1;
