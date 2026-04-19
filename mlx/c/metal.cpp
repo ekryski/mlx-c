@@ -27,6 +27,18 @@ inline mlx::core::Stream* unwrap_stream(mlx_stream s) {
   return static_cast<mlx::core::Stream*>(s.ctx);
 }
 
+// Heap-owned adapter that holds everything a build-only session
+// produces so a raw `void*` can cross the C-API boundary. The Swift
+// side treats this as opaque.
+struct BuildOnlySessionImpl {
+  mlx::core::metal::CommandEncoder::BuildOnlyResult result;
+};
+
+inline BuildOnlySessionImpl* unwrap_build_only_session(
+    mlx_metal_icb_build_only_session s) {
+  return static_cast<BuildOnlySessionImpl*>(s.ctx);
+}
+
 } // namespace
 
 extern "C" int mlx_metal_is_available(bool* res) {
@@ -232,6 +244,91 @@ extern "C" int mlx_metal_icb_recorder_size(
 extern "C" int mlx_metal_icb_recorder_free(mlx_metal_icb_recorder rec) {
   try {
     delete unwrap_icb_recorder(rec);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_begin_build_only(mlx_stream stream) {
+  try {
+    auto* s = unwrap_stream(stream);
+    if (!s) {
+      throw std::invalid_argument(
+          "[mlx_metal_icb_begin_build_only] null stream");
+    }
+    auto& enc = mlx::core::metal::get_command_encoder(*s);
+    enc.begin_build_only();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_end_build_only(
+    mlx_stream stream,
+    mlx_metal_icb_build_only_session* out_session) {
+  try {
+    auto* s = unwrap_stream(stream);
+    if (!s || !out_session) {
+      throw std::invalid_argument(
+          "[mlx_metal_icb_end_build_only] null stream/out");
+    }
+    auto& enc = mlx::core::metal::get_command_encoder(*s);
+    auto result = enc.end_build_only();
+    auto* impl = new BuildOnlySessionImpl{std::move(result)};
+    out_session->ctx = impl;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_replay_with_session(
+    mlx_stream stream,
+    mlx_metal_icb_recorder rec,
+    mlx_metal_icb_build_only_session session) {
+  try {
+    auto* s = unwrap_stream(stream);
+    auto* r = unwrap_icb_recorder(rec);
+    auto* sess = unwrap_build_only_session(session);
+    if (!s || !r || !sess) {
+      throw std::invalid_argument(
+          "[mlx_metal_icb_replay_with_session] null stream/recorder/session");
+    }
+    auto& enc = mlx::core::metal::get_command_encoder(*s);
+    enc.replay_icb_with_overrides(*r, sess->result.ab_overrides);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_build_only_session_count(
+    mlx_metal_icb_build_only_session session,
+    size_t* res) {
+  try {
+    auto* sess = unwrap_build_only_session(session);
+    if (!sess || !res) {
+      throw std::invalid_argument(
+          "[mlx_metal_icb_build_only_session_count] null session/res");
+    }
+    *res = sess->result.ab_overrides.size();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_icb_build_only_session_free(
+    mlx_metal_icb_build_only_session session) {
+  try {
+    delete unwrap_build_only_session(session);
   } catch (std::exception& e) {
     mlx_error(e.what());
     return 1;
