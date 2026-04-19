@@ -15,6 +15,7 @@
 #include "mlx/c/distributed_group.h"
 #include "mlx/c/io_types.h"
 #include "mlx/c/map.h"
+#include "mlx/c/metal.h"
 #include "mlx/c/stream.h"
 #include "mlx/c/string.h"
 #include "mlx/c/vector.h"
@@ -165,6 +166,21 @@ int mlx_fast_rms_norm(
     const mlx_array x,
     const mlx_array weight /* may be null */,
     float eps,
+    const mlx_stream s);
+/**
+ * RMSNorm overload that participates in decode-loop ICB replay via
+ * a caller-owned persistent argument buffer. The AB's MTLBuffer
+ * address is stable across calls so an ICB recording of this
+ * dispatch can be replayed correctly after the caller updates the
+ * handle's contents for the next step. When `ab_handle.ctx` is
+ * NULL, behavior is identical to `mlx_fast_rms_norm`.
+ */
+int mlx_fast_rms_norm_ab(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array weight /* may be null */,
+    float eps,
+    mlx_metal_persistent_ab ab_handle,
     const mlx_stream s);
 int mlx_fast_rms_norm_residual(
     mlx_array* res,

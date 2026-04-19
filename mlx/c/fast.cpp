@@ -4,6 +4,7 @@
 /*                                                    */
 
 #include "mlx/c/fast.h"
+#include "mlx/backend/metal/persistent_ab.h"
 #include "mlx/c/error.h"
 #include "mlx/c/private/mlx.h"
 #include "mlx/fast.h"
@@ -534,6 +535,35 @@ extern "C" int mlx_fast_rms_norm(
             (weight.ctx ? std::make_optional(mlx_array_get_(weight))
                         : std::nullopt),
             eps,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+extern "C" int mlx_fast_rms_norm_ab(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array weight /* may be null */,
+    float eps,
+    mlx_metal_persistent_ab ab_handle,
+    const mlx_stream s) {
+  try {
+    auto* raw = static_cast<mlx::core::metal::PersistentAb*>(ab_handle.ctx);
+    // Wrap the raw pointer in an aliasing shared_ptr with a no-op
+    // deleter — the C API handle still owns the lifetime; this
+    // shared_ptr is just transport into the mlx primitive factory.
+    std::shared_ptr<mlx::core::metal::PersistentAb> handle(
+        raw, [](mlx::core::metal::PersistentAb*) {});
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::rms_norm(
+            mlx_array_get_(x),
+            (weight.ctx ? std::make_optional(mlx_array_get_(weight))
+                        : std::nullopt),
+            eps,
+            std::move(handle),
             mlx_stream_get_(s)));
   } catch (std::exception& e) {
     mlx_error(e.what());
