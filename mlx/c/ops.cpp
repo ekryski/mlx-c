@@ -3221,6 +3221,29 @@ extern "C" int mlx_slice_update_dynamic(
   }
   return 0;
 }
+extern "C" int mlx_slice_update_inplace_dynamic(
+    mlx_array* res,
+    const mlx_array src,
+    const mlx_array update,
+    const mlx_array start,
+    const int* axes,
+    size_t axes_num,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::slice_update_inplace(
+            mlx_array_get_(src),
+            mlx_array_get_(update),
+            mlx_array_get_(start),
+            std::vector<int>(axes, axes + axes_num),
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
 extern "C" int mlx_softmax_axes(
     mlx_array* res,
     const mlx_array a,
