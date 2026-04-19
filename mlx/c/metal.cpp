@@ -733,3 +733,61 @@ extern "C" int mlx_metal_persistent_ab_new_rope_freqs(
   }
   return 0;
 }
+
+extern "C" int mlx_metal_persistent_ab_new_gather_front(
+    mlx_metal_persistent_ab* out,
+    mlx_stream stream) {
+  try {
+    if (!out) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_gather_front] null out");
+    }
+    auto* s = unwrap_stream(stream);
+    if (!s) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_gather_front] null stream");
+    }
+    auto& d = mlx::core::metal::device(s->device);
+    using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    auto* ab = new mlx::core::metal::PersistentAb(
+        d,
+        std::vector<Slot>{
+            {Slot::Kind::BufferPtrOffset, 0, "src"},
+            {Slot::Kind::BufferPtrOffset, 0, "indices"},
+            {Slot::Kind::BufferPtrOffset, 0, "out"},
+            {Slot::Kind::Scalar64, 0, "stride"},
+            {Slot::Kind::Scalar32, 0, "size"},
+        });
+    out->ctx = ab;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_push_next_gather_front_persistent_ab(
+    mlx_metal_persistent_ab ab) {
+  try {
+    auto* h = unwrap_persistent_ab(ab);
+    if (!h) {
+      throw std::invalid_argument(
+          "[mlx_metal_push_next_gather_front_persistent_ab] null ab");
+    }
+    mlx::core::push_next_gather_front_persistent_ab(h);
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_clear_next_gather_front_persistent_abs(void) {
+  try {
+    mlx::core::clear_next_gather_front_persistent_abs();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
