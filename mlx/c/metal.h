@@ -230,6 +230,35 @@ int mlx_metal_persistent_ab_new_sdpa(
     mlx_stream stream);
 
 /**
+ * Create a PersistentAb for RoPE base-path (6 slots). Layout:
+ *   0: BufferPtrOffset   in
+ *   1: BufferPtrOffset   out
+ *   2: BufferPtrOffset   offset
+ *   3: Float32           scale
+ *   4: Scalar64          stride
+ *   5: Float32           base
+ * Buffer-ptrs (0,1,2) are populated by mlx C++ per call. Constants
+ * (3,4,5) typically written once at handle creation.
+ */
+int mlx_metal_persistent_ab_new_rope(
+    mlx_metal_persistent_ab* out,
+    mlx_stream stream);
+
+/**
+ * Create a PersistentAb for RoPE freqs-path (7 slots). Layout:
+ *   0: BufferPtrOffset   in
+ *   1: BufferPtrOffset   out
+ *   2: BufferPtrOffset   offset
+ *   3: Float32           scale
+ *   4: Scalar64          stride
+ *   5: BufferPtrOffset   freqs
+ *   6: Scalar64          freq_stride
+ */
+int mlx_metal_persistent_ab_new_rope_freqs(
+    mlx_metal_persistent_ab* out,
+    mlx_stream stream);
+
+/**
  * Write a Float32 slot on a persistent AB. `slot` must reference
  * a Float32 slot in the handle's layout.
  */
@@ -246,6 +275,15 @@ int mlx_metal_persistent_ab_set_scalar32(
     mlx_metal_persistent_ab ab,
     int slot,
     uint32_t value);
+
+/**
+ * Write a Scalar64 slot on a persistent AB. `slot` must reference
+ * a Scalar64 slot in the handle's layout.
+ */
+int mlx_metal_persistent_ab_set_scalar64(
+    mlx_metal_persistent_ab ab,
+    int slot,
+    uint64_t value);
 
 /**
  * Release a persistent AB. Safe to pass a handle whose `ctx` is NULL.
