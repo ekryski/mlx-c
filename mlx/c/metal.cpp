@@ -392,3 +392,48 @@ extern "C" int mlx_metal_persistent_ab_free(mlx_metal_persistent_ab ab) {
   }
   return 0;
 }
+
+extern "C" int mlx_metal_persistent_ab_new_sdpa(
+    mlx_metal_persistent_ab* out,
+    mlx_stream stream) {
+  try {
+    if (!out) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_sdpa] null out");
+    }
+    auto* s = unwrap_stream(stream);
+    if (!s) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_new_sdpa] null stream");
+    }
+    auto& d = mlx::core::metal::device(s->device);
+    using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    auto* ab = new mlx::core::metal::PersistentAb(
+        d,
+        std::vector<Slot>{
+            {Slot::Kind::BufferPtrOffset, 0, "queries"},
+            {Slot::Kind::BufferPtrOffset, 0, "keys"},
+            {Slot::Kind::BufferPtrOffset, 0, "values"},
+            {Slot::Kind::BufferPtrOffset, 0, "out"},
+            {Slot::Kind::BufferPtrOffset, 0, "mask"},
+            {Slot::Kind::BufferPtrOffset, 0, "sinks"},
+            {Slot::Kind::Scalar64, 0, "k_head_stride"},
+            {Slot::Kind::Scalar64, 0, "k_seq_stride"},
+            {Slot::Kind::Scalar64, 0, "v_head_stride"},
+            {Slot::Kind::Scalar64, 0, "v_seq_stride"},
+            {Slot::Kind::Float32, 0, "scale"},
+            {Slot::Kind::Scalar32, 0, "gqa_factor"},
+            {Slot::Kind::Scalar32, 0, "N"},
+            {Slot::Kind::Scalar32, 0, "blocks"},
+            {Slot::Kind::Scalar32, 0, "mask_kv_seq_stride"},
+            {Slot::Kind::Scalar32, 0, "mask_q_seq_stride"},
+            {Slot::Kind::Scalar32, 0, "mask_head_stride"},
+            {Slot::Kind::Scalar32, 0, "num_q_heads"},
+        });
+    out->ctx = ab;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}

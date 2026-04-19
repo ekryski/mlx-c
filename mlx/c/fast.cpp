@@ -812,6 +812,44 @@ extern "C" int mlx_fast_scaled_dot_product_attention(
   return 0;
 }
 
+extern "C" int mlx_fast_scaled_dot_product_attention_ab(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    float scale,
+    const char* mask_mode,
+    const mlx_array mask_arr /* may be null */,
+    const mlx_array sinks /* may be null */,
+    mlx_metal_persistent_ab ab_handle,
+    const mlx_stream s,
+    int window_size) {
+  try {
+    auto* raw = static_cast<mlx::core::metal::PersistentAb*>(ab_handle.ctx);
+    std::shared_ptr<mlx::core::metal::PersistentAb> handle(
+        raw, [](mlx::core::metal::PersistentAb*) {});
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::scaled_dot_product_attention(
+            mlx_array_get_(queries),
+            mlx_array_get_(keys),
+            mlx_array_get_(values),
+            scale,
+            std::string(mask_mode),
+            (mask_arr.ctx ? std::make_optional(mlx_array_get_(mask_arr))
+                          : std::nullopt),
+            (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
+                       : std::nullopt),
+            std::move(handle),
+            mlx_stream_get_(s),
+            window_size));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
 extern "C" int mlx_fast_scaled_dot_product_attention_sliding(
     mlx_array* res,
     const mlx_array queries,
