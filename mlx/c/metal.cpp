@@ -637,6 +637,8 @@ extern "C" int mlx_metal_persistent_ab_new_sdpa(
     }
     auto& d = mlx::core::metal::device(s->device);
     using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    // 17-slot layout (N lifted to a direct kernel-slot 1 binding so the
+    // decode-loop orchestrator can override it race-free per step).
     auto* ab = new mlx::core::metal::PersistentAb(
         d,
         std::vector<Slot>{
@@ -652,7 +654,6 @@ extern "C" int mlx_metal_persistent_ab_new_sdpa(
             {Slot::Kind::Scalar64, 0, "v_seq_stride"},
             {Slot::Kind::Float32, 0, "scale"},
             {Slot::Kind::Scalar32, 0, "gqa_factor"},
-            {Slot::Kind::Scalar32, 0, "N"},
             {Slot::Kind::Scalar32, 0, "blocks"},
             {Slot::Kind::Scalar32, 0, "mask_kv_seq_stride"},
             {Slot::Kind::Scalar32, 0, "mask_q_seq_stride"},
@@ -660,6 +661,23 @@ extern "C" int mlx_metal_persistent_ab_new_sdpa(
             {Slot::Kind::Scalar32, 0, "num_q_heads"},
         });
     out->ctx = ab;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_metal_persistent_ab_set_scalar_binding_name(
+    mlx_metal_persistent_ab ab,
+    uint32_t name_id) {
+  try {
+    auto* p = unwrap_persistent_ab(ab);
+    if (!p) {
+      throw std::invalid_argument(
+          "[mlx_metal_persistent_ab_set_scalar_binding_name] null handle");
+    }
+    p->set_scalar_binding_name(name_id);
   } catch (std::exception& e) {
     mlx_error(e.what());
     return 1;
@@ -682,12 +700,12 @@ extern "C" int mlx_metal_persistent_ab_new_rope(
     }
     auto& d = mlx::core::metal::device(s->device);
     using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    // 5-slot layout (offset lifted to kernel slot 1).
     auto* ab = new mlx::core::metal::PersistentAb(
         d,
         std::vector<Slot>{
             {Slot::Kind::BufferPtrOffset, 0, "in"},
             {Slot::Kind::BufferPtrOffset, 0, "out"},
-            {Slot::Kind::BufferPtrOffset, 0, "offset"},
             {Slot::Kind::Float32, 0, "scale"},
             {Slot::Kind::Scalar64, 0, "stride"},
             {Slot::Kind::Float32, 0, "base"},
@@ -715,12 +733,12 @@ extern "C" int mlx_metal_persistent_ab_new_rope_freqs(
     }
     auto& d = mlx::core::metal::device(s->device);
     using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    // 6-slot layout (offset lifted to kernel slot 1).
     auto* ab = new mlx::core::metal::PersistentAb(
         d,
         std::vector<Slot>{
             {Slot::Kind::BufferPtrOffset, 0, "in"},
             {Slot::Kind::BufferPtrOffset, 0, "out"},
-            {Slot::Kind::BufferPtrOffset, 0, "offset"},
             {Slot::Kind::Float32, 0, "scale"},
             {Slot::Kind::Scalar64, 0, "stride"},
             {Slot::Kind::BufferPtrOffset, 0, "freqs"},
@@ -749,11 +767,11 @@ extern "C" int mlx_metal_persistent_ab_new_gather_front(
     }
     auto& d = mlx::core::metal::device(s->device);
     using Slot = mlx::core::metal::ArgumentBuffer::Slot;
+    // 4-slot layout (indices lifted to kernel slot 1).
     auto* ab = new mlx::core::metal::PersistentAb(
         d,
         std::vector<Slot>{
             {Slot::Kind::BufferPtrOffset, 0, "src"},
-            {Slot::Kind::BufferPtrOffset, 0, "indices"},
             {Slot::Kind::BufferPtrOffset, 0, "out"},
             {Slot::Kind::Scalar64, 0, "stride"},
             {Slot::Kind::Scalar32, 0, "size"},

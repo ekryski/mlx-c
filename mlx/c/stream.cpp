@@ -116,3 +116,33 @@ extern "C" mlx_stream mlx_default_gpu_stream_new(void) {
     return mlx_stream_new_();
   }
 }
+extern "C" int mlx_synchronize_all_gpu_streams(size_t* n_synced) {
+  try {
+    // Iterate every stream ever registered via `new_stream` (including
+    // the secondary GPU streams used by MoE experts, fast primitives,
+    // etc.) and drain each. Unlike `Stream.defaultStream.synchronize()`
+    // which only drains the thread's current default, this reaches every
+    // known sibling — the hook the decode-loop ICB orchestrator uses to
+    // guarantee "no live GPU work anywhere" before begin_icb_recording.
+    //
+    // Uses the high-level `mlx::core::synchronize(Stream)` for each
+    // entry, which routes through the backend's per-stream sync
+    // (`metal::get_command_encoder(s).synchronize()` on Metal). No
+    // iteration over internal thread_local encoder maps — so no
+    // iterator-invalidation / thread-boundary hazards.
+    size_t count = 0;
+    for (const auto& s : mlx::core::get_streams()) {
+      if (s.device == mlx::core::Device::gpu) {
+        mlx::core::synchronize(s);
+        ++count;
+      }
+    }
+    if (n_synced) {
+      *n_synced = count;
+    }
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
