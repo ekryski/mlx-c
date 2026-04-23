@@ -204,6 +204,27 @@ int mlx_fast_scaled_dot_product_attention(
     const mlx_array sinks /* may be null */,
     const mlx_stream s);
 
+/**
+ * Extended SDPA with an optional sliding-window bound. When
+ * `window_size > 0` and `mask_mode == "causal"`, restricts the causal
+ * attention band so each query attends only to the most recent
+ * `window_size` keys (the Gemma-sliding-attention pattern).
+ *
+ * Pass `window_size < 0` (e.g. -1) to disable the window and behave
+ * exactly like the non-sliding variant.
+ */
+int mlx_fast_scaled_dot_product_attention_sliding(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    float scale,
+    const char* mask_mode,
+    const mlx_array mask_arr /* may be null */,
+    const mlx_array sinks /* may be null */,
+    int window_size,
+    const mlx_stream s);
+
 /**@}*/
 
 // TurboQuant
