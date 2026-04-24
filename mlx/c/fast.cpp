@@ -563,6 +563,36 @@ extern "C" int mlx_fast_rms_norm_residual(
   }
   return 0;
 }
+extern "C" int mlx_fast_gather_rms_norm_qgemv(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array norm_weight,
+    const mlx_array w,
+    const mlx_array scales,
+    const mlx_array biases,
+    const mlx_array indices,
+    float eps,
+    int group_size,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::gather_rms_norm_qgemv(
+            mlx_array_get_(x),
+            mlx_array_get_(norm_weight),
+            mlx_array_get_(w),
+            mlx_array_get_(scales),
+            mlx_array_get_(biases),
+            mlx_array_get_(indices),
+            eps,
+            group_size,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
 extern "C" int mlx_fast_fused_gate_activation(
     mlx_array* res,
     const mlx_array gate_up,
