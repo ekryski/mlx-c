@@ -563,6 +563,26 @@ extern "C" int mlx_fast_rms_norm_residual(
   }
   return 0;
 }
+extern "C" int mlx_fast_fused_gate_activation(
+    mlx_array* res,
+    const mlx_array gate_up,
+    int hidden_dims,
+    int activation_type,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::fused_gate_activation(
+            mlx_array_get_(gate_up),
+            hidden_dims,
+            activation_type,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
 extern "C" int mlx_fast_rms_norm_rope(
     mlx_array* res,
     const mlx_array x,
