@@ -961,11 +961,14 @@ extern "C" int mlx_fast_turbo_flash_pass1_nr0_causal(
 extern "C" int mlx_fast_turbo_flash_pass2(
     mlx_array* res,
     const mlx_array o_partials, const mlx_array m_partials, const mlx_array l_partials,
-    int num_blocks, int dim, const mlx_stream s) {
+    int num_blocks, int dim, int nq_heads, int L,
+    const mlx_array sinks, const mlx_stream s) {
   try {
     mlx_array_set_(*res, mlx::core::fast::turbo_flash_pass2(
         mlx_array_get_(o_partials), mlx_array_get_(m_partials), mlx_array_get_(l_partials),
-        num_blocks, dim, mlx_stream_get_(s)));
+        num_blocks, dim, nq_heads, L,
+        (sinks.ctx ? std::make_optional(mlx_array_get_(sinks)) : std::nullopt),
+        mlx_stream_get_(s)));
   } catch (std::exception& e) { mlx_error(e.what()); return 1; }
   return 0;
 }
@@ -974,12 +977,15 @@ extern "C" int mlx_fast_turbo_flash_pass2_fused(
     mlx_array* res,
     const mlx_array o_partials, const mlx_array m_partials, const mlx_array l_partials,
     const mlx_array val_rotation,
-    int num_blocks, int dim, const mlx_stream s) {
+    int num_blocks, int dim, int nq_heads, int L,
+    const mlx_array sinks, const mlx_stream s) {
   try {
     mlx_array_set_(*res, mlx::core::fast::turbo_flash_pass2_fused(
         mlx_array_get_(o_partials), mlx_array_get_(m_partials), mlx_array_get_(l_partials),
         mlx_array_get_(val_rotation),
-        num_blocks, dim, mlx_stream_get_(s)));
+        num_blocks, dim, nq_heads, L,
+        (sinks.ctx ? std::make_optional(mlx_array_get_(sinks)) : std::nullopt),
+        mlx_stream_get_(s)));
   } catch (std::exception& e) { mlx_error(e.what()); return 1; }
   return 0;
 }
