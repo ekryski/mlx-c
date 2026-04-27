@@ -1000,6 +1000,19 @@ extern "C" int mlx_fast_turbo_value(
   return 0;
 }
 
+extern "C" int mlx_fast_turbo_bulk_dequant_rotated(
+    mlx_array* res,
+    const mlx_array packed, const mlx_array norms, const mlx_array codebook,
+    int bits, int dim, mlx_dtype output_dtype, const mlx_stream s) {
+  try {
+    mlx_array_set_(*res, mlx::core::fast::turbo_bulk_dequant_rotated(
+        mlx_array_get_(packed), mlx_array_get_(norms),
+        mlx_array_get_(codebook),
+        bits, dim, mlx_dtype_to_cpp(output_dtype), mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
 // ============================================================================
 // GatedDelta C bridge
 // ============================================================================
