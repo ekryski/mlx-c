@@ -1,0 +1,79 @@
+name: alpha CI
+
+# Builds the C bindings on the ekryski fork's `alpha` branch and any PR
+# targeting it.
+#
+# mlx-c's CMakeLists pulls mlx via FetchContent pinned to upstream
+# `ml-explore/mlx@v0.31.1`, which doesn't have our Turbo primitives. We
+# override the source dir to point at a sibling checkout of `ekryski/mlx@alpha`
+# so the bindings link against the symbols this fork actually exposes
+# (`mlx_fast_turbo_bulk_dequant_rotated`, SSM step, etc.).
+
+on:
+  push:
+    branches: [alpha]
+  pull_request:
+    branches: [alpha]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alpha-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/alpha' }}
+
+jobs:
+  build:
+    if: github.repository_owner == 'ekryski'
+    name: Build (M1 macOS)
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: mlx-c
+
+      - name: Checkout ekryski/mlx@alpha (override FetchContent source)
+        uses: actions/checkout@v4
+        with:
+          repository: ekryski/mlx
+          ref: alpha
+          path: mlx
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          cmake --version
+          uname -a
+
+      - name: Cache CMake build directory
+        uses: actions/cache@v4
+        with:
+          path: mlx-c/build
+          # Key on both repos' tips so a push to either side busts the cache.
+          # `git rev-parse HEAD` runs in workflow scope; CMake binds the cache
+          # to the actual mlx source it built against.
+          key: cmake-${{ runner.os }}-${{ hashFiles('mlx-c/CMakeLists.txt', 'mlx/CMakeLists.txt') }}-${{ hashFiles('mlx/mlx/**/*.cpp', 'mlx/mlx/**/*.h', 'mlx/mlx/backend/metal/kernels/**/*.metal') }}
+          restore-keys: |
+            cmake-${{ runner.os }}-
+
+      - name: Configure
+        working-directory: mlx-c
+        run: |
+          cmake -S . -B build \
+            -DFETCHCONTENT_SOURCE_DIR_MLX="${{ github.workspace }}/mlx" \
+            -DMLX_C_BUILD_EXAMPLES=OFF \
+            -DBUILD_SHARED_LIBS=OFF
+
+      - name: Build mlx-c
+        working-directory: mlx-c
+        run: cmake --build build -j
+
+      - name: Verify build artifacts
+        working-directory: mlx-c
+        run: |
+          ls -la build/*.a build/*.dylib 2>/dev/null | head
+          # Confirm our fork-specific symbol is present in the static archive.
+          nm build/libmlxc.a 2>/dev/null | grep -i "turbo_bulk_dequant_rotated" \
+            && echo "OK: ekryski-fork turbo binding linked" \
+            || (echo "FAIL: turbo_bulk_dequant_rotated not found — wrong mlx source?"; exit 1)
