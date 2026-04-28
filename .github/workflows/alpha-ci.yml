@@ -29,12 +29,12 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: mlx-c
 
       - name: Checkout ekryski/mlx@alpha (override FetchContent source)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ekryski/mlx
           ref: alpha
@@ -47,7 +47,7 @@ jobs:
           uname -a
 
       - name: Cache CMake build directory
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: mlx-c/build
           # Key on both repos' tips so a push to either side busts the cache.
