@@ -27,7 +27,7 @@ jobs:
     if: github.repository_owner == 'ekryski'
     name: Build (M1 macOS)
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,7 +67,12 @@ jobs:
 
       - name: Build mlx-c
         working-directory: mlx-c
-        run: cmake --build build -j
+        # Cap parallelism at 2 on the 3-vCPU / 7 GB macos-26 runner. mlx-c
+        # transitively builds all of mlx via FetchContent (with our alpha
+        # source override), and the steel/attn template instantiations peak
+        # at >2 GB per compiler — three concurrent jobs blow past the 7 GB
+        # runner budget and trigger swap, far slower than -j 2.
+        run: cmake --build build -j 2
 
       - name: Verify build artifacts
         working-directory: mlx-c
