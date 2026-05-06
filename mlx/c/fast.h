@@ -251,6 +251,58 @@ int mlx_fast_gated_delta_step_fused(mlx_vector_array* res, const mlx_array q_raw
 // SSM
 int mlx_fast_ssm_step(mlx_vector_array* res, const mlx_array X, const mlx_array A_log, const mlx_array B, const mlx_array C, const mlx_array D, const mlx_array dt, const mlx_array state, int Dh, int Ds, int H, int G, const mlx_stream s);
 
+// Fused RMS norm + RoPE
+int mlx_fast_rms_norm_rope(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array weight,
+    const mlx_array inv_freqs,
+    float eps,
+    int offset,
+    int n_heads,
+    int seq_len,
+    const mlx_stream s);
+
+// Fused RMS norm + quantized GEMV
+int mlx_fast_rms_norm_qgemv(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array norm_weight,
+    const mlx_array w,
+    const mlx_array scales,
+    const mlx_array biases,
+    float eps,
+    int group_size,
+    const mlx_stream s);
+
+// Batched QKV quantized GEMV
+int mlx_fast_batched_qkv_qgemv(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array w_q, const mlx_array scales_q, const mlx_array biases_q,
+    const mlx_array w_k, const mlx_array scales_k, const mlx_array biases_k,
+    const mlx_array w_v, const mlx_array scales_v, const mlx_array biases_v,
+    int group_size,
+    const mlx_stream s);
+
+// Warp-level MoE gate+up projection
+int mlx_fast_warp_moe_gate_up(
+    mlx_array* res,
+    const mlx_array x,
+    const mlx_array w, const mlx_array scales, const mlx_array biases,
+    const mlx_array indices,
+    int group_size, int hidden_dims, int activation_type,
+    const mlx_stream s);
+
+// Warp-level MoE down projection
+int mlx_fast_warp_moe_down(
+    mlx_array* res,
+    const mlx_array activated,
+    const mlx_array w, const mlx_array scales, const mlx_array biases,
+    const mlx_array indices, const mlx_array scores,
+    int group_size, int hidden_dims, int out_dims,
+    const mlx_stream s);
+
 #ifdef __cplusplus
 }
 #endif
