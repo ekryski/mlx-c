@@ -1055,6 +1055,41 @@ extern "C" int mlx_fast_gated_delta_step_fused(
   return 0;
 }
 
+extern "C" int mlx_fast_gated_delta_step_record(
+    mlx_vector_array* res,
+    const mlx_array q, const mlx_array k, const mlx_array v,
+    const mlx_array g, const mlx_array beta, const mlx_array state,
+    const mlx_array mask /* may be null */,
+    int T, int Dk, int Dv, int Hk, int Hv,
+    const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::gated_delta_step_record(
+        mlx_array_get_(q), mlx_array_get_(k), mlx_array_get_(v),
+        mlx_array_get_(g), mlx_array_get_(beta), mlx_array_get_(state),
+        (mask.ctx ? std::make_optional(mlx_array_get_(mask)) : std::nullopt),
+        T, Dk, Dv, Hk, Hv, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
+extern "C" int mlx_fast_state_replay(
+    mlx_vector_array* res,
+    const mlx_array delta_log, const mlx_array k_tape, const mlx_array g_tape,
+    const mlx_array state,
+    const mlx_array mask /* may be null */,
+    int T_log, int accepted,
+    int Dk, int Dv, int Hk, int Hv,
+    const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(*res, mlx::core::fast::state_replay(
+        mlx_array_get_(delta_log), mlx_array_get_(k_tape),
+        mlx_array_get_(g_tape), mlx_array_get_(state),
+        (mask.ctx ? std::make_optional(mlx_array_get_(mask)) : std::nullopt),
+        T_log, accepted, Dk, Dv, Hk, Hv, mlx_stream_get_(s)));
+  } catch (std::exception& e) { mlx_error(e.what()); return 1; }
+  return 0;
+}
+
 // ============================================================================
 // SSM C bridge
 // ============================================================================
