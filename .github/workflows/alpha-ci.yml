@@ -33,15 +33,28 @@ jobs:
         with:
           path: mlx-c
 
+      - name: Resolve ekryski/mlx ref (cross-repo PR auto-detect)
+        # If this PR's branch name also exists on ekryski/mlx, use it —
+        # lets cross-repo PRs build without manually flipping the ref.
+        # Falls back to `alpha` otherwise. See CONTRIBUTING.md on the
+        # mlx-swift-lm fork for the cross-repo PR conventions.
+        id: mlx-ref
+        shell: bash
+        run: |
+          HEAD_REF="${{ github.head_ref || github.ref_name }}"
+          if git ls-remote --heads https://github.com/ekryski/mlx "$HEAD_REF" | grep -q .; then
+            echo "Found matching cross-repo branch on ekryski/mlx: $HEAD_REF"
+            echo "ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+          else
+            echo "No matching branch on ekryski/mlx; falling back to alpha"
+            echo "ref=alpha" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout ekryski/mlx (override FetchContent source)
-        # Pinned to `ek/gdn-tape-primitives` for the duration of spec 020 —
-        # the C bindings here depend on `gated_delta_step_record` +
-        # `state_replay` primitives from mlx PR #26 (ekryski/mlx#26). Revert
-        # to `ref: alpha` after mlx#26 merges.
         uses: actions/checkout@v6
         with:
           repository: ekryski/mlx
-          ref: ek/gdn-tape-primitives
+          ref: ${{ steps.mlx-ref.outputs.ref }}
           path: mlx
 
       - name: Show toolchain
