@@ -1074,7 +1074,7 @@ extern "C" int mlx_fast_gated_delta_step_record(
 
 extern "C" int mlx_fast_state_replay(
     mlx_vector_array* res,
-    const mlx_array delta_log, const mlx_array k_tape, const mlx_array g_tape,
+    const mlx_array delta_log, const mlx_array k_log, const mlx_array g_log,
     const mlx_array state,
     const mlx_array mask /* may be null */,
     int T_log, int accepted,
@@ -1082,8 +1082,8 @@ extern "C" int mlx_fast_state_replay(
     const mlx_stream s) {
   try {
     mlx_vector_array_set_(*res, mlx::core::fast::state_replay(
-        mlx_array_get_(delta_log), mlx_array_get_(k_tape),
-        mlx_array_get_(g_tape), mlx_array_get_(state),
+        mlx_array_get_(delta_log), mlx_array_get_(k_log),
+        mlx_array_get_(g_log), mlx_array_get_(state),
         (mask.ctx ? std::make_optional(mlx_array_get_(mask)) : std::nullopt),
         T_log, accepted, Dk, Dv, Hk, Hv, mlx_stream_get_(s)));
   } catch (std::exception& e) { mlx_error(e.what()); return 1; }
