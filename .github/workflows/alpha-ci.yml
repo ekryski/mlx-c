@@ -33,11 +33,15 @@ jobs:
         with:
           path: mlx-c
 
-      - name: Checkout ekryski/mlx@alpha (override FetchContent source)
+      - name: Checkout ekryski/mlx (override FetchContent source)
+        # Pinned to `ek/gdn-tape-primitives` for the duration of spec 020 —
+        # the C bindings here depend on `gated_delta_step_record` +
+        # `state_replay` primitives from mlx PR #26 (ekryski/mlx#26). Revert
+        # to `ref: alpha` after mlx#26 merges.
         uses: actions/checkout@v6
         with:
           repository: ekryski/mlx
-          ref: alpha
+          ref: ek/gdn-tape-primitives
           path: mlx
 
       - name: Show toolchain
