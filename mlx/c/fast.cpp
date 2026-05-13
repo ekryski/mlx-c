@@ -1132,6 +1132,7 @@ extern "C" int mlx_fast_flash_quantized_sdpa(
     const char* mask_mode,
     const mlx_array mask_arr,
     const mlx_array sinks,
+    int window_size,
     const mlx_stream s) {
   try {
     mlx_array_set_(
@@ -1152,6 +1153,7 @@ extern "C" int mlx_fast_flash_quantized_sdpa(
                           : std::nullopt),
             (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
                        : std::nullopt),
+            window_size,
             mlx_stream_get_(s)));
   } catch (std::exception& e) {
     mlx_error(e.what());
