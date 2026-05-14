@@ -1110,3 +1110,114 @@ extern "C" int mlx_fast_ssm_step(
   } catch (std::exception& e) { mlx_error(e.what()); return 1; }
   return 0;
 }
+
+// ============================================================================
+// Spec 041 phase 1.1: flash quantized SDPA C bridge.
+// `mask_arr` / `sinks` are optional — pass null `mlx_array` (`ctx == nullptr`)
+// to skip.
+// ============================================================================
+
+extern "C" int mlx_fast_flash_quantized_sdpa(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array k_packed,
+    const mlx_array k_scales,
+    const mlx_array k_biases,
+    const mlx_array v_packed,
+    const mlx_array v_scales,
+    const mlx_array v_biases,
+    float scale,
+    int bits,
+    int group_size,
+    const char* mask_mode,
+    const mlx_array mask_arr,
+    const mlx_array sinks,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::flash_quantized_sdpa(
+            mlx_array_get_(queries),
+            mlx_array_get_(k_packed),
+            mlx_array_get_(k_scales),
+            mlx_array_get_(k_biases),
+            mlx_array_get_(v_packed),
+            mlx_array_get_(v_scales),
+            mlx_array_get_(v_biases),
+            scale,
+            bits,
+            group_size,
+            std::string(mask_mode),
+            (mask_arr.ctx ? std::make_optional(mlx_array_get_(mask_arr))
+                          : std::nullopt),
+            (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
+                       : std::nullopt),
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+// ============================================================================
+// Spec 040: Mamba state-replay C bridge.
+// ============================================================================
+
+extern "C" int mlx_fast_ssm_step_record(
+    mlx_vector_array* res,
+    const mlx_array x,
+    const mlx_array A_log,
+    const mlx_array B,
+    const mlx_array C,
+    const mlx_array D,
+    const mlx_array dt,
+    const mlx_array state,
+    const mlx_array mask, // optional (ctx == nullptr to omit)
+    const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(
+        *res,
+        mlx::core::fast::ssm_step_record(
+            mlx_array_get_(x),
+            mlx_array_get_(A_log),
+            mlx_array_get_(B),
+            mlx_array_get_(C),
+            mlx_array_get_(D),
+            mlx_array_get_(dt),
+            mlx_array_get_(state),
+            (mask.ctx ? std::make_optional(mlx_array_get_(mask))
+                      : std::nullopt),
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" int mlx_fast_ssm_replay(
+    mlx_array* res,
+    const mlx_array state_snapshot,
+    const mlx_array dA_log,
+    const mlx_array dBx_log,
+    int accepted_prefix,
+    const mlx_array mask, // optional
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::ssm_replay(
+            mlx_array_get_(state_snapshot),
+            mlx_array_get_(dA_log),
+            mlx_array_get_(dBx_log),
+            accepted_prefix,
+            (mask.ctx ? std::make_optional(mlx_array_get_(mask))
+                      : std::nullopt),
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
