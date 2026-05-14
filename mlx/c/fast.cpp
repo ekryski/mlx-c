@@ -1132,6 +1132,7 @@ extern "C" int mlx_fast_flash_quantized_sdpa(
     const char* mask_mode,
     const mlx_array mask_arr,
     const mlx_array sinks,
+    int window_size,
     const mlx_stream s) {
   try {
     mlx_array_set_(
@@ -1152,6 +1153,55 @@ extern "C" int mlx_fast_flash_quantized_sdpa(
                           : std::nullopt),
             (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
                        : std::nullopt),
+            window_size,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+// ============================================================================
+// Spec 041 phase 1.1 follow-up: TurboQuant fused single-pass SDPA C bridge.
+// ============================================================================
+
+extern "C" int mlx_fast_turbo_flash_sdpa_v(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array k_packed,
+    const mlx_array k_norms,
+    const mlx_array k_codebook,
+    const mlx_array v_packed,
+    const mlx_array v_norms,
+    const mlx_array v_codebook,
+    int key_bits,
+    int value_bits,
+    int dim,
+    int repeat_count,
+    const mlx_array sinks, // optional (ctx == nullptr → no sinks)
+    bool do_causal,
+    int window_size,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::turbo_flash_sdpa_v(
+            mlx_array_get_(queries),
+            mlx_array_get_(k_packed),
+            mlx_array_get_(k_norms),
+            mlx_array_get_(k_codebook),
+            mlx_array_get_(v_packed),
+            mlx_array_get_(v_norms),
+            mlx_array_get_(v_codebook),
+            key_bits,
+            value_bits,
+            dim,
+            repeat_count,
+            (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
+                       : std::nullopt),
+            do_causal,
+            window_size,
             mlx_stream_get_(s)));
   } catch (std::exception& e) {
     mlx_error(e.what());
