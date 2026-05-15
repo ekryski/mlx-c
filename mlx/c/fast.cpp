@@ -1182,6 +1182,10 @@ extern "C" int mlx_fast_turbo_flash_sdpa_v(
     const mlx_array sinks, // optional (ctx == nullptr → no sinks)
     bool do_causal,
     int window_size,
+    const mlx_array k_bias, // optional bias inputs — all four or none
+    const mlx_array v_bias,
+    const mlx_array k_rotated_ones,
+    const mlx_array v_rotated_ones,
     const mlx_stream s) {
   try {
     mlx_array_set_(
@@ -1202,6 +1206,16 @@ extern "C" int mlx_fast_turbo_flash_sdpa_v(
                        : std::nullopt),
             do_causal,
             window_size,
+            (k_bias.ctx ? std::make_optional(mlx_array_get_(k_bias))
+                        : std::nullopt),
+            (v_bias.ctx ? std::make_optional(mlx_array_get_(v_bias))
+                        : std::nullopt),
+            (k_rotated_ones.ctx
+                 ? std::make_optional(mlx_array_get_(k_rotated_ones))
+                 : std::nullopt),
+            (v_rotated_ones.ctx
+                 ? std::make_optional(mlx_array_get_(v_rotated_ones))
+                 : std::nullopt),
             mlx_stream_get_(s)));
   } catch (std::exception& e) {
     mlx_error(e.what());
